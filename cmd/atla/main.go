@@ -26,7 +26,6 @@ type application struct {
 	models model.Models
 	logger *jsonlog.Logger
 	wg     sync.WaitGroup
-	server *http.Server
 }
 
 func main() {
@@ -85,14 +84,11 @@ func (app *application) serve() error {
 	})
 
 	// Create an HTTP server instance
-	app.server = &http.Server{
-		Addr:    fmt.Sprintf(":%d", app.config.port),
-		Handler: nil, // Use the default HTTP mux
-	}
+	addr := fmt.Sprintf(":%d", app.config.port)
 
-	// Start listening for incoming requests
-	err := app.server.ListenAndServe()
-	if err != nil && err != http.ErrServerClosed {
+	// Start listening for incoming requests on the configured port
+	err := http.ListenAndServe(addr, nil)
+	if err != nil {
 		return err
 	}
 
