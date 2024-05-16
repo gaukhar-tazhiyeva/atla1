@@ -33,7 +33,7 @@ func main() {
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 8081, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:postgres@localhost:5432/atla?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:golang@localhost:5432/atla?sslmode=disable", "PostgreSQL DSN")
 	flag.Parse()
 
 	// Init logger
