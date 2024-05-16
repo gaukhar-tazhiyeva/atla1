@@ -1,0 +1,50 @@
+### Create Character Item
+POST localhost:8081/api/v1/characters
+Content-Type: application/json
+
+{
+    "Name" : "AAng",
+    "Age" : 112,
+    "Gender" : "male",
+    "Status" : "alive",
+    "Nation" : "air"
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Get Character Item
+GET localhost:8081/api/v1/characters/1
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Update Menu Item
+PUT localhost:8081/api/v1/characters/1
+Content-Type: application/json
+
+{
+  "Status" : "dead"
+}
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Delete Character Item
+DELETE localhost:8081/api/v1/characters/1
+Content-Type: application/json
+
+> {%
+    client.test("Request executed successfully", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
