@@ -3,6 +3,8 @@ package main
 import (
 	"database/sql"
 	"flag"
+	"fmt"
+	"net/http"
 	"os"
 	"sync"
 
@@ -24,6 +26,7 @@ type application struct {
 	models model.Models
 	logger *jsonlog.Logger
 	wg     sync.WaitGroup
+	server *http.Server
 }
 
 func main() {
@@ -73,4 +76,25 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
+}
+
+func (app *application) serve() error {
+	// Define your HTTP handler logic here
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprintf(w, "Hello, World!")
+	})
+
+	// Create an HTTP server instance
+	app.server = &http.Server{
+		Addr:    fmt.Sprintf(":%d", app.config.port),
+		Handler: nil, // Use the default HTTP mux
+	}
+
+	// Start listening for incoming requests
+	err := app.server.ListenAndServe()
+	if err != nil && err != http.ErrServerClosed {
+		return err
+	}
+
+	return nil
 }
