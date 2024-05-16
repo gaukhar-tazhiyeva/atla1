@@ -24,17 +24,15 @@ type EpisodeModel struct {
 	ErrorLog *log.Logger
 }
 
-func (m EpisodeModel) GetAll(title string, air_date string, filters Filters) ([]*Episode, Metadata, error) {
-
-	// Retrieve all menu items from the database.
+func (m EpisodeModel) GetAll(title string, filters Filters) ([]*Episode, Metadata, error) {
+	// Retrieve all episodes from the database.
 	query := fmt.Sprintf(
 		`
-		SELECT count(*) OVER(), id, title, air_date, createdAt, updatedAt
-		FROM episode
-		WHERE (LOWER(title) = LOWER($1) OR $1 = '')
-		AND (age >= $10 OR $2 = 0)
+		SELECT count(*) OVER(), id, title, air_date, created_at, updated_at
+		FROM episodes
+		WHERE (title ILIKE '%%' || $1 || '%%' OR $1 = '')
 		ORDER BY %s %s, id ASC
-		LIMIT $4 OFFSET $5
+		LIMIT $2 OFFSET $3
 		`,
 		filters.sortColumn(), filters.sortDirection())
 
@@ -42,10 +40,9 @@ func (m EpisodeModel) GetAll(title string, air_date string, filters Filters) ([]
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Organize our four placeholder parameter values in a slice.
-	args := []interface{}{title, air_date, filters.limit(), filters.offset()}
+	// Organize our placeholder parameter values in a slice.
+	args := []interface{}{title, filters.limit(), filters.offset()}
 
-	// log.Println(query, title, from, to, filters.limit(), filters.offset())
 	// Use QueryContext to execute the query. This returns a sql.Rows result set containing
 	// the result.
 	rows, err := m.DB.QueryContext(ctx, query, args...)
@@ -76,7 +73,7 @@ func (m EpisodeModel) GetAll(title string, air_date string, filters Filters) ([]
 			return nil, Metadata{}, err
 		}
 
-		// Add the Movie struct to the slice
+		// Add the Episode struct to the slice
 		episodes = append(episodes, &episode)
 	}
 
@@ -90,7 +87,7 @@ func (m EpisodeModel) GetAll(title string, air_date string, filters Filters) ([]
 	// from the client.
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 
-	// If everything went OK, then return the slice of the movies and metadata.
+	// If everything went OK, then return the slice of episodes and metadata.
 	return episodes, metadata, nil
 }
 
@@ -158,8 +155,35 @@ func (m EpisodeModel) Delete(id int) error {
 }
 
 func ValidateEpisode(v *validator.Validator, episode *Episode) {
-	// Check if the name field is empty.
 	v.Check(episode.Title != "", "title", "must be provided")
 	v.Check(episode.Air_Date != "", "title", "must be provided")
 
+}
+
+func (m *EpisodeModel) GetByCharacter(characterID int) ([]*Episode, error) {
+	query := `
+        SELECT e.id, e.title, e.air_date, e.created_at, e.updated_at
+        FROM episodes e
+        JOIN characters_and_episodes ce ON e.id = ce.episode_id
+        WHERE ce.character_id = $1
+        ORDER BY e.id
+    `
+
+	rows, err := m.DB.Query(query, characterID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var episodes []*Episode
+	for rows.Next() {
+		var episode Episode
+		err := rows.Scan(&episode.ID, &episode.Title, &episode.Air_Date, &episode.CreatedAt, &episode.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		episodes = append(episodes, &episode)
+	}
+
+	return episodes, nil
 }

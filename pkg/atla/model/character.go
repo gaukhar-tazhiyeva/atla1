@@ -40,31 +40,21 @@ func (m CharacterModel) GetAll(name string, age_from int, age_to int, filters Fi
 		LIMIT $4 OFFSET $5
 		`,
 		filters.sortColumn(), filters.sortDirection())
-
-	// Create a context with a 3-second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	// Organize our four placeholder parameter values in a slice.
 	args := []interface{}{name, age_from, age_to, filters.limit(), filters.offset()}
 
-	// log.Println(query, title, from, to, filters.limit(), filters.offset())
-	// Use QueryContext to execute the query. This returns a sql.Rows result set containing
-	// the result.
 	rows, err := m.DB.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, Metadata{}, err
 	}
-
-	// Importantly, defer a call to rows.Close() to ensure that the result set is closed
-	// before GetAll returns.
 	defer func() {
 		if err := rows.Close(); err != nil {
 			m.ErrorLog.Println(err)
 		}
 	}()
 
-	// Declare a totalRecords variable
 	totalRecords := 0
 
 	var characters []*Character
@@ -82,21 +72,15 @@ func (m CharacterModel) GetAll(name string, age_from int, age_to int, filters Fi
 			return nil, Metadata{}, err
 		}
 
-		// Add the Movie struct to the slice
 		characters = append(characters, &character)
 	}
 
-	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
-	// that was encountered during the iteration.
 	if err = rows.Err(); err != nil {
 		return nil, Metadata{}, err
 	}
 
-	// Generate a Metadata struct, passing in the total record count and pagination parameters
-	// from the client.
 	metadata := calculateMetadata(totalRecords, filters.Page, filters.PageSize)
 
-	// If everything went OK, then return the slice of the movies and metadata.
 	return characters, metadata, nil
 }
 
@@ -163,8 +147,56 @@ func (m CharacterModel) Delete(id int) error {
 	return err
 }
 
+func (m *CharacterModel) GetByEpisode(episodeID int) ([]*Character, error) {
+	query := `
+        SELECT c.id, c.name, c.age, c.gender, c.status, c.nation, c.created_at, c.updated_at
+        FROM characters c
+        JOIN characters_and_episodes ce ON c.id = ce.character_id
+        WHERE ce.episode_id = $1
+        ORDER BY c.id
+    `
+
+	rows, err := m.DB.Query(query, episodeID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var characters []*Character
+	for rows.Next() {
+		var character Character
+		err := rows.Scan(&character.ID, &character.Name, &character.Age, &character.Gender, &character.Status, &character.Nation, &character.CreatedAt, &character.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		characters = append(characters, &character)
+	}
+
+	return characters, nil
+}
+
+func (m *CharacterModel) GetByQuote(quoteID int) (*Character, error) {
+	query := `
+        SELECT c.id, c.name, c.age, c.gender, c.status, c.nation, c.created_at, c.updated_at
+        FROM characters c
+        JOIN characters_and_quotes cq ON c.id = cq.character_id
+        WHERE cq.quote_id = $1
+        ORDER BY c.id
+    `
+
+	var character Character
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	row := m.DB.QueryRowContext(ctx, query, quoteID)
+	err := row.Scan(&character.ID, &character.Name, &character.Age, &character.Gender, &character.Status, &character.Nation, &character.CreatedAt, &character.UpdatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("cannot retrive character with id: %v, %w", quoteID, err)
+	}
+	return &character, nil
+}
+
 func ValidateCharacter(v *validator.Validator, character *Character) {
-	// Check if the name field is empty.
 	v.Check(character.Name != "", "name", "must be provided")
 	v.Check(character.Age <= 10000, "age", "must not be more than 10000 bytes long")
 	v.Check(character.Gender != "", "gender", "must be provided")

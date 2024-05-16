@@ -6,7 +6,9 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"strconv"
 
+	"github.com/gorilla/mux"
 	"github.com/justverena/ATLA/pkg/atla/model"
 	"github.com/justverena/ATLA/pkg/atla/validator"
 )
@@ -54,39 +56,21 @@ func (app *application) getCharacterList(w http.ResponseWriter, r *http.Request)
 	var input struct {
 		Name string
 		Age  int
-		// ID        int
-		// Gender    string
-		// Status    string
-		// Nation    string
 		model.Filters
 	}
 	v := validator.New()
 	qs := r.URL.Query()
 
-	// Use our helpers to extract the title and nutrition value range query string values, falling back to the
-	// defaults of an empty string and an empty slice, respectively, if they are not provided
-	// by the client.
 	input.Name = app.readStrings(qs, "name", "")
 	input.Age = app.readInt(qs, "age", 0, v)
-	// input.Gender = app.readStrings(qs, "gender", "")
-	// input.Status = app.readStrings(qs, "status", "")
-	// input.Nation = app.readStrings(qs, "nation", "")
-	// Ge the page and page_size query string value as integers. Notice that we set the default
-	// page value to 1 and default page_size to 20, and that we pass the validator instance
-	// as the final argument.
+
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 
-	// Extract the sort query string value, falling back to "id" if it is not provided
-	// by the client (which will imply an ascending sort on menu ID).
 	input.Filters.Sort = app.readStrings(qs, "sort", "id")
 
-	// Add the supported sort value for this endpoint to the sort safelist.
-	// name of the column in the database.
 	input.Filters.SortSafeList = []string{
-		// ascending sort values
 		"id", "name", "age",
-		// descending sort values
 		"-id", "-name", "-age",
 	}
 
@@ -214,14 +198,52 @@ func (app *application) deleteCharacterHandler(w http.ResponseWriter, r *http.Re
 	app.writeJSON(w, http.StatusOK, envelope{"message": "success"}, nil)
 }
 
-// func (app *application) readJSON(_ http.ResponseWriter, r *http.Request, dst interface{}) error {
-// 	dec := json.NewDecoder(r.Body)
-// 	dec.DisallowUnknownFields()
+func (app *application) getEpisodeCharacters(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	episodeID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid episode ID")
+		return
+	}
 
-// 	err := dec.Decode(dst)
-// 	if err != nil {
-// 		return err
-// 	}
+	episode, err := app.models.Episodes.Get(episodeID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
 
-// 	return nil
-// }
+	characters, err := app.models.Characters.GetByEpisode(episodeID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, envelope{"episode": episode}, nil)
+
+	app.writeJSON(w, http.StatusOK, envelope{"characters": characters}, nil)
+}
+
+func (app *application) getQuoteCharacter(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	quoteID, err := strconv.Atoi(vars["id"])
+	if err != nil {
+		app.errorResponse(w, r, http.StatusBadRequest, "Invalid quote ID")
+		return
+	}
+
+	quote, err := app.models.Quotes.Get(quoteID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	character, err := app.models.Characters.GetByQuote(quoteID)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, envelope{"quote": quote}, nil)
+
+	app.writeJSON(w, http.StatusOK, envelope{"character": character}, nil)
+}

@@ -11,13 +11,9 @@ import (
 	"github.com/justverena/ATLA/pkg/atla/validator"
 )
 
-func (app *application) createEpisodeHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) createQuoteHandler(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		ID       int    `json:"id"`
-		Title    string `json:"title"`
-		Air_Date string `json:"air_date"`
-		// CreatedAt string `json:"createdAt"`
-		// UpdatedAt string `json:"updatedAt"`
+		Quote string `json:"quote"`
 	}
 
 	err := app.readJSON(w, r, &input)
@@ -27,63 +23,58 @@ func (app *application) createEpisodeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	episode := &model.Episode{
-		ID:       input.ID,
-		Title:    input.Title,
-		Air_Date: input.Air_Date,
-		// CreatedAt: input.CreatedAt,
-		// UpdatedAt: input.UpdatedAt,
+	quote := &model.Quote{
+		Quote: input.Quote,
 	}
 
-	err = app.models.Episodes.Insert(episode)
+	err = app.models.Quotes.Insert(quote)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	app.writeJSON(w, http.StatusCreated, envelope{"episodes": episode}, nil)
+	app.writeJSON(w, http.StatusCreated, envelope{"quote": quote}, nil)
 }
 
-func (app *application) getEpisodeList(w http.ResponseWriter, r *http.Request) {
+func (app *application) getQuoteList(w http.ResponseWriter, r *http.Request) {
 	var input struct {
-		Title string
+		Quote string
 		model.Filters
 	}
 	v := validator.New()
 	qs := r.URL.Query()
 
-	input.Title = app.readStrings(qs, "title", "")
-
+	input.Quote = app.readStrings(qs, "quote", "")
 	input.Filters.Page = app.readInt(qs, "page", 1, v)
 	input.Filters.PageSize = app.readInt(qs, "page_size", 20, v)
 	input.Filters.Sort = app.readStrings(qs, "sort", "id")
 
 	input.Filters.SortSafeList = []string{
-		"id", "title",
-		"-id", "-title",
+		"id", "quote", "created_at", "updated_at",
+		"-id", "-quote", "-created_at", "-updated_at",
 	}
 
 	if model.ValidateFilters(v, input.Filters); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	episodes, metadata, err := app.models.Episodes.GetAll(input.Title, input.Filters)
+	quotes, metadata, err := app.models.Quotes.GetAll(input.Quote, input.Filters)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
 
-	app.writeJSON(w, http.StatusOK, envelope{"episodes": episodes, "metadata": metadata}, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"quotes": quotes, "metadata": metadata}, nil)
 }
 
-func (app *application) getEpisodeHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) getQuoteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	episode, err := app.models.Episodes.Get(id)
+	quote, err := app.models.Quotes.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, model.ErrRecordNotFound):
@@ -94,17 +85,17 @@ func (app *application) getEpisodeHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	app.writeJSON(w, http.StatusOK, envelope{"episodes": episode}, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"quote": quote}, nil)
 }
 
-func (app *application) updateEpisodeHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) updateQuoteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	episode, err := app.models.Episodes.Get(id)
+	quote, err := app.models.Quotes.Get(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, model.ErrRecordNotFound):
@@ -116,9 +107,7 @@ func (app *application) updateEpisodeHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	var input struct {
-		ID       *int    `json:"id"`
-		Title    *string `json:"title"`
-		Air_Date *string `json:"air_date"`
+		Quote *string `json:"quote"`
 	}
 
 	err = app.readJSON(w, r, &input)
@@ -127,20 +116,16 @@ func (app *application) updateEpisodeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if input.Title != nil {
-		episode.Title = *input.Title
-	}
-
-	if input.Air_Date != nil {
-		episode.Air_Date = *input.Air_Date
+	if input.Quote != nil {
+		quote.Quote = *input.Quote
 	}
 	v := validator.New()
 
-	if model.ValidateEpisode(v, episode); !v.Valid() {
+	if model.ValidateQuote(v, quote); !v.Valid() {
 		app.failedValidationResponse(w, r, v.Errors)
 		return
 	}
-	err = app.models.Episodes.Update(episode)
+	err = app.models.Quotes.Update(quote)
 	if err != nil {
 		switch {
 		case errors.Is(err, model.ErrRecordNotFound):
@@ -151,17 +136,17 @@ func (app *application) updateEpisodeHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	app.writeJSON(w, http.StatusOK, envelope{"episodes": episode}, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"quote": quote}, nil)
 }
 
-func (app *application) deleteEpisodeHandler(w http.ResponseWriter, r *http.Request) {
+func (app *application) deleteQuoteHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := app.readIDParam(r)
 	if err != nil {
 		app.notFoundResponse(w, r)
 		return
 	}
 
-	err = app.models.Episodes.Delete(id)
+	err = app.models.Quotes.Delete(id)
 	if err != nil {
 		switch {
 		case errors.Is(err, model.ErrRecordNotFound):
@@ -175,7 +160,7 @@ func (app *application) deleteEpisodeHandler(w http.ResponseWriter, r *http.Requ
 	app.writeJSON(w, http.StatusOK, envelope{"message": "success"}, nil)
 }
 
-func (app *application) getCharacterEpisode(w http.ResponseWriter, r *http.Request) {
+func (app *application) getCharacterQuotesList(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	characterID, err := strconv.Atoi(vars["id"])
 	if err != nil {
@@ -189,7 +174,7 @@ func (app *application) getCharacterEpisode(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	episode, err := app.models.Episodes.GetByCharacter(characterID)
+	quotes, err := app.models.Quotes.GetQuotesByCharacterID(characterID)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
@@ -197,5 +182,6 @@ func (app *application) getCharacterEpisode(w http.ResponseWriter, r *http.Reque
 
 	app.writeJSON(w, http.StatusOK, envelope{"character": character}, nil)
 
-	app.writeJSON(w, http.StatusOK, envelope{"episode": episode}, nil)
+	app.writeJSON(w, http.StatusOK, envelope{"quotes": quotes}, nil)
+
 }

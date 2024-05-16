@@ -18,6 +18,7 @@ var (
 type Models struct {
 	Characters  CharacterModel
 	Episodes    EpisodeModel
+	Quotes      QuoteModel
 	Users       UserModel
 	Tokens      TokenModel
 	Permissions PermissionModel
@@ -33,6 +34,11 @@ func NewModels(db *sql.DB) Models {
 			ErrorLog: errorLog,
 		},
 		Episodes: EpisodeModel{
+			DB:       db,
+			InfoLog:  infoLog,
+			ErrorLog: errorLog,
+		},
+		Quotes: QuoteModel{
 			DB:       db,
 			InfoLog:  infoLog,
 			ErrorLog: errorLog,

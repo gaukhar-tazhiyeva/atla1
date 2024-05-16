@@ -3,8 +3,6 @@ package main
 import (
 	"database/sql"
 	"flag"
-	"fmt"
-	"net/http"
 	"os"
 	"sync"
 
@@ -32,7 +30,7 @@ func main() {
 	var cfg config
 	flag.IntVar(&cfg.port, "port", 8081, "API server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:golang@localhost:5432/atla?sslmode=disable", "PostgreSQL DSN")
+	flag.StringVar(&cfg.db.dsn, "db-dsn", "postgres://postgres:postgres@localhost:5432/atla?sslmode=disable", "PostgreSQL DSN")
 	flag.Parse()
 
 	// Init logger
@@ -75,22 +73,4 @@ func openDB(cfg config) (*sql.DB, error) {
 		return nil, err
 	}
 	return db, nil
-}
-
-func (app *application) serve() error {
-	// Define your HTTP handler logic here
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "Hello, World!")
-	})
-
-	// Create an HTTP server instance
-	addr := fmt.Sprintf(":%d", app.config.port)
-
-	// Start listening for incoming requests on the configured port
-	err := http.ListenAndServe(addr, nil)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

@@ -19,6 +19,13 @@ CREATE TABLE IF NOT EXISTS episodes
     updated_at      timestamp(0) with time zone NOT NULL DEFAULT NOW(),
 );
 
+CREATE TABLE IF NOT EXISTS quotes
+(
+    id              bigserial PRIMARY KEY,
+    qoute           text                        NOT NULL,
+    created_at      timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    updated_at      timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+);
 CREATE TABLE IF NOT EXISTS characters_and_episodes
 (
     id         bigserial PRIMARY KEY,
@@ -30,4 +37,17 @@ CREATE TABLE IF NOT EXISTS characters_and_episodes
         REFERENCES characters(id),
     FOREIGN KEY (episode_id)
         REFERENCES episodes(id)
+);
+
+CREATE TABLE IF NOT EXISTS characters_and_quotes
+(
+    id         bigserial PRIMARY KEY,
+    character_id     bigserial                        NOT NULL,
+    quote_id       bigserial                        NOT NULL,
+    created_at       timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    updated_at       timestamp(0) with time zone NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (character_id)
+        REFERENCES characters(id),
+    FOREIGN KEY (qoute_id)
+        REFERENCES quotes(id)
 );
